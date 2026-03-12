@@ -3,7 +3,7 @@ import google.generativeai as genai
 from PIL import Image
 
 # --- BIBLIOTECA DE HASHTAGS TMJnaOBRA ---
-HASHTAGS_PADRAO = "#TMJnaOBRA #MetodoDono #Studio82 #Arquitetura #GestaoDeObras #ObrasSemCaos #ArquiteturaEInteriores"
+HASHTAGS_PADRAO = "#TMJnaOBRA #MetodoDono #Arquitetura #GestaoDeObras #ObrasSemCaos #ObrasdeSucesso"
 
 # --- ESTILIZAÇÃO TMJnaOBRA ---
 st.markdown("""
@@ -35,7 +35,15 @@ else:
     st.sidebar.error("❌ Configure a API Key.")
     api_key = None
 
-modelo_selecionado = st.sidebar.selectbox("Cérebro da obra:", ["gemini-1.5-flash", "gemini-1.5-pro"])
+modelo_selecionado = st.sidebar.selectbox(
+    "Escolha o cérebro da obra:", 
+    [
+        "gemini-3-flash-preview", 
+        "gemini-3-pro-preview", 
+        "gemini-2.0-flash", # Caso o Google já tenha estabilizado a 2.0
+        "gemini-1.5-pro"    # Mantemos como backup se ainda existir
+    ]
+)
 
 if api_key:
     modo = st.radio("O que vamos fazer hoje?", ["Reels ➡️ Carrossel", "Carrossel ➡️ Reels"])
