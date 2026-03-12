@@ -2,6 +2,9 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
+# --- BIBLIOTECA DE HASHTAGS TMJnaOBRA ---
+HASHTAGS_PADRAO = "#TMJnaOBRA #MetodoDono #Studio82 #Arquitetura #GestaoDeObras #ObrasSemCaos #ArquiteturaEInteriores"
+
 # --- ESTILIZAÇÃO TMJnaOBRA ---
 st.markdown("""
     <style>
@@ -16,85 +19,71 @@ st.markdown("""
     .stTextInput>div>div>input, .stSelectbox>div>div>div {
         background-color: #262730; color: white; border: 1px solid #FFD700;
     }
-    /* Estilo para o bloco de código do CapCut */
     code { color: #FFD700 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# Configuração da Página
 st.set_page_config(page_title="TMJnaOBRA | Automatizador de Conteúdo", page_icon="⚡")
 st.title("🚀 TMJnaOBRA: Content Lab")
 
-# Conexão com a API via Secrets
+# Conexão via Secrets
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=api_key)
-    st.sidebar.success("✅ Conectado com sucesso!")
+    st.sidebar.success("✅ Conectado!")
 else:
-    st.sidebar.error("❌ Configure a GOOGLE_API_KEY nos Secrets.")
+    st.sidebar.error("❌ Configure a API Key.")
     api_key = None
 
-modelo_selecionado = st.sidebar.selectbox(
-    "Escolha o cérebro da obra:", 
-    ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-3-flash-preview", "gemini-3-pro-preview"]
-)
+modelo_selecionado = st.sidebar.selectbox("Cérebro da obra:", ["gemini-1.5-flash", "gemini-1.5-pro"])
 
 if api_key:
     modo = st.radio("O que vamos fazer hoje?", ["Reels ➡️ Carrossel", "Carrossel ➡️ Reels"])
 
     if modo == "Reels ➡️ Carrossel":
         upload = st.file_uploader("Suba o arquivo de vídeo (Reels)", type=["mp4", "mov", "avi"])
-        prompt_especifico = "Analise este vídeo e gere um roteiro de carrossel de 7 a 10 slides, seguindo minha System Instruction. Para cada slide, dê: Título, Texto Curto e Sugestão de Imagem."
+        prompt_especifico = f"""
+        Analise este vídeo e gere um roteiro de carrossel (7-10 slides).
+        Para cada slide: Título, Texto Curto e Sugestão de Imagem.
+        AO FINAL, escreva uma LEGENDA para o Instagram que gere engajamento, usando este grupo de hashtags: {HASHTAGS_PADRAO}.
+        """
     else:
-        upload = st.file_uploader("Suba as imagens do carrossel ou o texto base", type=["png", "jpg", "txt", "jpeg"], accept_multiple_files=True)
-        # PROMPT OTIMIZADO PARA CAPCUT
-        prompt_especifico = """
-        Com base nestes materiais, crie um roteiro de Reels dinâmico. 
-        IMPORTANTE: Divida sua resposta em duas partes:
-        1. ESTRATÉGIA VISUAL: Detalhe os ganchos e o que deve aparecer em cada cena.
-        2. ROTEIRO PARA CAPCUT: Escreva apenas a narração (locução) de forma fluida, sem colchetes ou instruções técnicas. 
-        Este segundo bloco deve ser curto (máximo 60 segundos de fala).
+        upload = st.file_uploader("Suba as imagens ou texto", type=["png", "jpg", "txt", "jpeg"], accept_multiple_files=True)
+        prompt_especifico = f"""
+        Crie um roteiro de Reels dinâmico. Divida em:
+        1. ESTRATÉGIA VISUAL: Ganchos e cenas.
+        2. ROTEIRO PARA CAPCUT: Apenas a locução/narração limpa.
+        3. LEGENDA DO POST: Uma legenda curta e impactante com CTAs e estas hashtags: {HASHTAGS_PADRAO}.
         """
 
     if upload and st.button("✨ Gerar Mágica"):
-        with st.spinner("O Gemini está analisando a obra..."):
+        with st.spinner("O Gemini está finalizando o conteúdo..."):
             try:
                 model = genai.GenerativeModel(modelo_selecionado)
                 conteudo_para_ia = [prompt_especifico]
                 
-                # Tratamento de arquivos para a IA
                 if isinstance(upload, list):
                     for f in upload:
-                        if f.type.startswith('image'):
-                            conteudo_para_ia.append(Image.open(f))
-                        else:
-                            conteudo_para_ia.append({"mime_type": f.type, "data": f.read()})
+                        conteudo_para_ia.append(Image.open(f) if f.type.startswith('image') else {"mime_type": f.type, "data": f.read()})
                 else:
-                    if upload.type.startswith('image'):
-                        conteudo_para_ia.append(Image.open(upload))
-                    else:
-                        conteudo_para_ia.append({"mime_type": upload.type, "data": upload.read()})
+                    conteudo_para_ia.append(Image.open(upload) if upload.type.startswith('image') else {"mime_type": upload.type, "data": upload.read()})
 
                 response = model.generate_content(conteudo_para_ia)
-                
                 st.markdown("---")
                 
-                # Se for Carrossel para Reels, vamos tentar separar o código do CapCut
-                if modo == "Carrossel ➡️ Reels":
-                    partes = response.text.split("2. ROTEIRO PARA CAPCUT")
-                    
-                    st.subheader("📋 Estratégia de Conteúdo")
+                # Organização da Saída
+                texto_total = response.text
+                
+                if "LEGENDA DO POST" in texto_total:
+                    partes = texto_total.split("LEGENDA DO POST")
+                    st.subheader("📝 Roteiro e Estratégia")
                     st.write(partes[0])
                     
-                    if len(partes) > 1:
-                        st.subheader("🎬 Roteiro Pronto para o CapCut")
-                        st.info("Copie o texto abaixo e cole na função 'Script para Vídeo' do CapCut.")
-                        st.code(partes[1].strip(), language="text") # Bloco de fácil cópia
+                    st.subheader("📸 Legenda para o Instagram")
+                    st.info("Pronta para copiar e colar no post!")
+                    st.code(partes[1].strip(), language="text")
                 else:
-                    st.success("Conteúdo Gerado!")
-                    st.markdown(response.text)
+                    st.markdown(texto_total)
 
             except Exception as e:
-                st.error(f"Erro ao processar: {e}")
-
-
+                st.error(f"Erro: {e}")
