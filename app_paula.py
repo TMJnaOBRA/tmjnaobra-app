@@ -2,98 +2,90 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# --- BIBLIOTECA DE HASHTAGS TMJnaOBRA ---
-HASHTAGS_PADRAO = "#TMJnaOBRA #MetodoDono #Arquitetura #GestaoDeObras #ObrasSemCaos #ObrasdeSucesso"
+# --- HASHTAGS ---
+HASHTAGS = "#TMJnaOBRA #MetodoDono #ObrasdeSucesso #Arquitetura #GestaoDeObras #ObrasSemCaos"
 
-# --- ESTILIZAÇÃO TMJnaOBRA ---
+# --- ESTILO TMJnaOBRA ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
     [data-testid="stSidebar"] { background-color: #1E1E1E; border-right: 3px solid #FFD700; }
-    h1, h2, h3, b, strong { color: #FFD700 !important; font-family: 'Helvetica', sans-serif; }
+    h1, h2, h3, b, strong { color: #FFD700 !important; }
     div.stButton > button:first-child {
-        background-color: #FFD700; color: #000000; border-radius: 10px;
-        font-weight: bold; height: 3em; width: 100%; border: none; transition: 0.3s;
+        background-color: #FFD700; color: black; font-weight: bold; width: 100%; border-radius: 10px;
     }
-    div.stButton > button:hover { background-color: #E6C200; border: 1px solid #000000; }
-    .stTextInput>div>div>input, .stSelectbox>div>div>div {
-        background-color: #262730; color: white; border: 1px solid #FFD700;
-    }
-    code { color: #FFD700 !important; }
+    /* Estilo para facilitar a visualização do código */
+    .stCodeBlock { border: 1px solid #FFD700; }
     </style>
 """, unsafe_allow_html=True)
 
-st.set_page_config(page_title="TMJnaOBRA | Automatizador de Conteúdo", page_icon="⚡")
 st.title("🚀 TMJnaOBRA: Content Lab")
 st.sidebar.image("logo_tmj_branco.png")
 
-# Conexão via Secrets
+# Secrets
 if "GOOGLE_API_KEY" in st.secrets:
-    api_key = st.secrets["GOOGLE_API_KEY"]
-    genai.configure(api_key=api_key)
-    st.sidebar.success("✅ Conectado!")
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    st.sidebar.success("✅ Conectado")
 else:
-    st.sidebar.error("❌ Configure a API Key.")
-    api_key = None
+    st.sidebar.error("❌ API Key não configurada.")
 
-modelo_selecionado = st.sidebar.selectbox(
-    "Escolha o cérebro da obra:", 
-    [
-        "gemini-3-flash-preview", 
-        "gemini-3-pro-preview", 
-        "gemini-2.0-flash", # Caso o Google já tenha estabilizado a 2.0
-        "gemini-1.5-pro"    # Mantemos como backup se ainda existir
-    ]
-)
+modelo = st.sidebar.selectbox("Cérebro:", ["gemini-3-flash-preview", "gemini-1.5-flash", "gemini-1.5-pro"])
 
-if api_key:
-    modo = st.radio("O que vamos fazer hoje?", ["Reels ➡️ Carrossel", "Carrossel ➡️ Reels"])
+modo = st.radio("O que vamos fazer?", ["Reels ➡️ Carrossel", "Carrossel ➡️ Reels"])
 
-    if modo == "Reels ➡️ Carrossel":
-        upload = st.file_uploader("Suba o arquivo de vídeo (Reels)", type=["mp4", "mov", "avi"])
-        prompt_especifico = f"""
-        Analise este vídeo e gere um roteiro de carrossel (7-10 slides).
-        Para cada slide: Título, Texto Curto e Sugestão de Imagem.
-        AO FINAL, escreva uma LEGENDA para o Instagram que gere engajamento, usando este grupo de hashtags: {HASHTAGS_PADRAO}.
-        """
-    else:
-        upload = st.file_uploader("Suba as imagens ou texto", type=["png", "jpg", "txt", "jpeg"], accept_multiple_files=True)
-        prompt_especifico = f"""
-        Crie um roteiro de Reels dinâmico. Divida em:
-        1. ESTRATÉGIA VISUAL: Ganchos e cenas.
-        2. ROTEIRO PARA CAPCUT: Apenas a locução/narração limpa.
-        3. LEGENDA DO POST: Uma legenda curta e impactante com CTAs e estas hashtags: {HASHTAGS_PADRAO}.
-        """
+upload = st.file_uploader("Suba seus arquivos", accept_multiple_files=True)
 
-    if upload and st.button("✨ Gerar Mágica"):
-        with st.spinner("O Gemini está finalizando o conteúdo..."):
-            try:
-                model = genai.GenerativeModel(modelo_selecionado)
-                conteudo_para_ia = [prompt_especifico]
-                
-                if isinstance(upload, list):
-                    for f in upload:
-                        conteudo_para_ia.append(Image.open(f) if f.type.startswith('image') else {"mime_type": f.type, "data": f.read()})
+if upload and st.button("✨ Gerar Mágica"):
+    with st.spinner("Analisando a obra..."):
+        try:
+            model = genai.GenerativeModel(modelo)
+            
+            # Prompt ultra-detalhado para garantir a separação
+            prompt = f"""
+            Analise os arquivos e gere o conteúdo seguindo estes exatos 3 blocos:
+            
+            ---ESTRATEGIA---
+            (Explique os ganchos e a lógica visual aqui)
+            
+            ---CAPCUT---
+            (Escreva apenas a locução/fala limpa para o CapCut aqui)
+            
+            ---LEGENDA---
+            (Escreva a legenda do Instagram com CTAs e estas hashtags: {HASHTAGS})
+            """
+            
+            conteudo = [prompt]
+            for f in upload:
+                if f.type.startswith('image'):
+                    conteudo.append(Image.open(f))
                 else:
-                    conteudo_para_ia.append(Image.open(upload) if upload.type.startswith('image') else {"mime_type": upload.type, "data": upload.read()})
+                    conteudo.append({"mime_type": f.type, "data": f.read()})
 
-                response = model.generate_content(conteudo_para_ia)
-                st.markdown("---")
-                
-                # Organização da Saída
-                texto_total = response.text
-                
-                if "LEGENDA DO POST" in texto_total:
-                    partes = texto_total.split("LEGENDA DO POST")
-                    st.subheader("📝 Roteiro e Estratégia")
-                    st.write(partes[0])
-                    
-                    st.subheader("📸 Legenda para o Instagram")
-                    st.info("Pronta para copiar e colar no post!")
-                    st.code(partes[1].strip(), language="text")
-                else:
-                    st.markdown(texto_total)
+            response = model.generate_content(conteudo)
+            res_text = response.text
 
-            except Exception as e:
-                st.error(f"Erro: {e}")
+            # --- LÓGICA DE EXIBIÇÃO COM BOTÕES DE COPIAR ---
+            
+            # 1. Estratégia
+            if "---ESTRATEGIA---" in res_text:
+                st.subheader("📐 Estratégia da Obra")
+                estratégia = res_text.split("---ESTRATEGIA---")[1].split("---")[0]
+                st.write(estratégia.strip())
+
+            # 2. Roteiro CapCut (Com botão de copiar)
+            if "---CAPCUT---" in res_text:
+                st.subheader("🎬 Roteiro para o CapCut")
+                st.info("Passe o mouse no quadro abaixo e clique no ícone de copiar no canto direito.")
+                roteiro = res_text.split("---CAPCUT---")[1].split("---")[0]
+                st.code(roteiro.strip(), language="text")
+
+            # 3. Legenda Instagram (Com botão de copiar)
+            if "---LEGENDA---" in res_text:
+                st.subheader("📝 Legenda do Post")
+                legenda = res_text.split("---LEGENDA---")[1]
+                st.code(legenda.strip(), language="text")
+
+        except Exception as e:
+            st.error(f"Erro na obra: {e}")
+
 
