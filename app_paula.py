@@ -25,6 +25,7 @@ st.markdown("""
 
 st.set_page_config(page_title="TMJnaOBRA | Automatizador de Conteúdo", page_icon="⚡")
 st.title("🚀 TMJnaOBRA: Content Lab")
+st.sidebar.image("logo_tmj_branco.png")
 
 # Conexão via Secrets
 if "GOOGLE_API_KEY" in st.secrets:
@@ -95,3 +96,4 @@ if api_key:
 
             except Exception as e:
                 st.error(f"Erro: {e}")
+
