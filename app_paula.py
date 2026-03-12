@@ -1,3 +1,4 @@
+from PIL import Image
 import streamlit as st
 import google.generativeai as genai
 
@@ -38,18 +39,35 @@ if api_key:
         with st.spinner("O Gemini está processando seu conteúdo..."):
             try:
                 model = genai.GenerativeModel(modelo_selecionado)
-                # Envia o arquivo + o prompt
-                # Nota: Para múltiplos arquivos ou vídeos, o Gemini 1.5 lida nativamente
-                response = model.generate_content([prompt_especifico, upload] if not isinstance(upload, list) else [prompt_especifico] + upload)
+                
+                # Preparando a "lista de entrega" para a IA
+                conteudo_para_ia = [prompt_especifico]
+                
+                # Se forem vários arquivos (Carrossel)
+                if isinstance(upload, list):
+                    for f in upload:
+                        if f.type.startswith('image'):
+                            conteudo_para_ia.append(Image.open(f))
+                        else:
+                            conteudo_para_ia.append({"mime_type": f.type, "data": f.read()})
+                else:
+                    # Se for arquivo único (Reels ou Imagem única)
+                    if upload.type.startswith('image'):
+                        conteudo_para_ia.append(Image.open(upload))
+                    else:
+                        # Para vídeos, enviamos os dados puros com o tipo do arquivo
+                        conteudo_para_ia.append({"mime_type": upload.type, "data": upload.read()})
+
+                response = model.generate_content(conteudo_para_ia)
                 
                 st.markdown("---")
                 st.success("Conteúdo Gerado!")
                 st.markdown(response.text)
                 
-                # Botão para baixar o texto
                 st.download_button("Baixar Roteiro", response.text, file_name="roteiro_gerado.txt")
             except Exception as e:
                 st.error(f"Erro ao processar: {e}")
 else:
 
     st.warning("Por favor, insira sua API Key na barra lateral para começar.")
+
