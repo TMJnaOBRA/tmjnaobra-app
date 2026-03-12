@@ -37,7 +37,7 @@ if api_key:
     if upload and st.button("✨ Gerar Mágica"):
         with st.spinner("O Gemini está processando seu conteúdo..."):
             try:
-                model = genai.GenerativeModel(modelo)
+                model = genai.GenerativeModel(modelo_selecionado)
                 # Envia o arquivo + o prompt
                 # Nota: Para múltiplos arquivos ou vídeos, o Gemini 1.5 lida nativamente
                 response = model.generate_content([prompt_especifico, upload] if not isinstance(upload, list) else [prompt_especifico] + upload)
@@ -51,4 +51,5 @@ if api_key:
             except Exception as e:
                 st.error(f"Erro ao processar: {e}")
 else:
+
     st.warning("Por favor, insira sua API Key na barra lateral para começar.")
