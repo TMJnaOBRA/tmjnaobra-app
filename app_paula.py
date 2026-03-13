@@ -2,6 +2,13 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
+# 1. ESTE PRECISA SER O PRIMEIRO COMANDO DO STREAMLIT!
+st.set_page_config(
+    page_title="TMJnaOBRA | Content Lab", 
+    page_icon="⚡", 
+    layout="wide"
+)
+
 # --- HASHTAGS ---
 HASHTAGS = "#TMJnaOBRA #MetodoDono #ObrasdeSucesso #Arquitetura #GestaoDeObras #ObrasSemCaos"
 
